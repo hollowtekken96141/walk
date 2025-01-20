@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fractal Demo</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #000;
+        }
+        button {
+            position: absolute;
+            bottom: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <button id="walkButton">Walk</button>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+    <script>
+        var config = {
+            type: Phaser.AUTO,
+            width: window.innerWidth,
+            height: window.innerHeight,
+            parent: 'body',
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        var game = new Phaser.Game(config);
+        var fractalPattern;
+        var parameter = 1;
+        var particles = []; // Array to store particle information
+        var particleSize = 0.3;
+
+        function preload() {
+            this.load.image('dot', 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Red_Dot_X_-_Single_Red_Dot.png');
+        }
+
+        function create() {
+            fractalPattern = this.add.container(0, 0);
+            generateFractal.call(this, parameter);
+
+            var walkButton = document.getElementById('walkButton');
+            walkButton.addEventListener('click', () => {
+                parameter += 0.1;
+                animateFractalMovement.call(this, parameter);
+            });
+        }
+
+        function update() {
+            // Continuous updates are not required for this example
+        }
+
+        function generateFractal(param) {
+            // Remove all existing particles
+            particles.forEach(particle => {
+                particle.sprite.destroy();
+            });
+            particles = [];
+
+            var maxSize = Math.min(game.config.width, game.config.height);
+            var centerX = game.config.width / 2;
+            var centerY = game.config.height / 2;
+
+            // Create the fractal pattern
+            createFractal.call(this, centerX, centerY, maxSize / 10, param, 0);
+        }
+
+        function createFractal(x, y, size, param, depth) {
+            if (depth > 7) return;
+
+            // Add a new particle
+            var dot = this.add.image(x, y, 'dot').setOrigin(0.5, 0.5);
+            dot.setScale(particleSize);
+
+            particles.push({
+                sprite: dot,
+                x: x,
+                y: y,
+                size: size,
+                depth: depth,
+                param: param
+            });
+
+            // Calculate offsets and recursively create fractals
+            var offsetX = size * Math.cos(depth * param);
+            var offsetY = size * Math.sin(depth * param);
+
+            createFractal.call(this, x + offsetX, y + offsetY, size * 0.8, param, depth + 1);
+            createFractal.call(this, x - offsetX, y - offsetY, size * 0.8, param, depth + 1);
+        }
+
+        function animateFractalMovement(newParam) {
+            // Animate particles to their new positions based on the updated parameter
+            particles.forEach(particle => {
+                var newOffsetX = particle.size * Math.cos(particle.depth * newParam);
+                var newOffsetY = particle.size * Math.sin(particle.depth * newParam);
+
+                var targetX = particle.x + newOffsetX;
+                var targetY = particle.y + newOffsetY;
+
+                this.tweens.add({
+                    targets: particle.sprite,
+                    x: targetX,
+                    y: targetY,
+                    duration: 1000,
+                    ease: 'Cubic.Out'
+                });
+
+                // Update particle positions for the next animation step
+                particle.x = targetX;
+                particle.y = targetY;
+            });
+        }
+
+        window.addEventListener('resize', function () {
+            game.scale.resize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
